@@ -5,7 +5,7 @@ from utils import visualize
 # Simulation params
 np.random.seed(10)
 time_step = 0.5 # time between steps in seconds
-sim_time = 120    # simulation time
+sim_time = 120    # simulation time, simulate data for 120 second
 
 # Car params
 x_init = 1.5
@@ -16,8 +16,11 @@ v_min = 0
 w_max = 1
 w_min = -1
 
-# This function returns the reference point at time step k
 def lissajous(k):
+    """
+    # This function returns the reference point at time step k
+    k: timestamp
+    """
     xref_start = 0
     yref_start = 0
     A = 2
@@ -30,11 +33,16 @@ def lissajous(k):
     xref = xref_start + A*np.sin(a*k*time_step + delta)
     yref = yref_start + B*np.sin(b*k*time_step)
     v = [A*a*np.cos(a*k*time_step + delta), B*b*np.cos(b*k*time_step)]
-    thetaref = np.arctan2(v[1], v[0])
-    return [xref, yref, thetaref]
+    thetaref = np.arctan2(v[1], v[0]) # theta reference
+    return [xref, yref, thetaref] 
 
 # This function implements a simple P controller
 def simple_controller(cur_state, ref_state):
+    """
+    simple proportional controller (P controller). control are proportional to the 
+    error.
+
+    """
     k_v = 0.55
     k_w = 1.0
     v = k_v*np.sqrt((cur_state[0] - ref_state[0])**2 + (cur_state[1] - ref_state[1])**2)
@@ -47,6 +55,17 @@ def simple_controller(cur_state, ref_state):
 
 # This function implement the car dynamics
 def car_next_state(time_step, cur_state, control, noise = True):
+    """implement car dynamics
+
+    Args:
+        time_step (int): current time index
+        cur_state (np array): shape = (3,) -> [x,y,theta]
+        control (np array): shape = (2,) -> [linear v, angular v]
+        noise (bool, optional): Defaults to True.
+
+    Returns:
+        np array: shape = (3,) -> [x,y,theta]
+    """
     theta = cur_state[2]
     rot_3d_z = np.array([[np.cos(theta), 0], [np.sin(theta), 0], [0, 1]])
     f = rot_3d_z @ control
@@ -73,9 +92,9 @@ if __name__ == '__main__':
     main_loop = time()  # return time in sec
     # Initialize state
     cur_state = np.array([x_init, y_init, theta_init])
-    cur_iter = 0
+    cur_iter = 0 # iteration loop
     # Main loop
-    while (cur_iter * time_step < sim_time):
+    while (cur_iter * time_step < sim_time): 
         t1 = time()
         # Get reference state
         cur_time = cur_iter*time_step
