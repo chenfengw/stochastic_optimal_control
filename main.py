@@ -1,6 +1,8 @@
 from time import time
 import numpy as np
 from utils import visualize
+import controller as ctrl
+import dynamics as dyn
 
 # Simulation params
 np.random.seed(10)
@@ -16,89 +18,30 @@ v_min = 0
 w_max = 1
 w_min = -1
 
-def lissajous(k):
-    """
-    # This function returns the reference point at time step k
-    k: timestamp
-    """
-    xref_start = 0
-    yref_start = 0
-    A = 2
-    B = 2
-    a = 2*np.pi/50
-    b = 3*a
-    T = np.round(2*np.pi/(a*time_step))
-    k = k % T
-    delta = np.pi/2
-    xref = xref_start + A*np.sin(a*k*time_step + delta)
-    yref = yref_start + B*np.sin(b*k*time_step)
-    v = [A*a*np.cos(a*k*time_step + delta), B*b*np.cos(b*k*time_step)]
-    thetaref = np.arctan2(v[1], v[0]) # theta reference
-    return [xref, yref, thetaref] 
-
-# This function implements a simple P controller
-def simple_controller(cur_state, ref_state):
-    """
-    simple proportional controller (P controller). control are proportional to the 
-    error.
-
-    """
-    k_v = 0.55
-    k_w = 1.0
-    v = k_v*np.sqrt((cur_state[0] - ref_state[0])**2 + (cur_state[1] - ref_state[1])**2)
-    v = np.clip(v, v_min, v_max)
-    angle_diff = ref_state[2] - cur_state[2]
-    angle_diff = (angle_diff + np.pi) % (2 * np.pi ) - np.pi
-    w = k_w*angle_diff
-    w = np.clip(w, w_min, w_max)
-    return [v,w]
-
-# This function implement the car dynamics
-def car_next_state(time_step, cur_state, control, noise = True):
-    """implement car dynamics
-
-    Args:
-        time_step (int): current time index
-        cur_state (np array): shape = (3,) -> [x,y,theta]
-        control (np array): shape = (2,) -> [linear v, angular v]
-        noise (bool, optional): Defaults to True.
-
-    Returns:
-        np array: shape = (3,) -> [x,y,theta]
-    """
-    theta = cur_state[2]
-    rot_3d_z = np.array([[np.cos(theta), 0], [np.sin(theta), 0], [0, 1]])
-    f = rot_3d_z @ control
-    mu, sigma = 0, 0.04 # mean and standard deviation for (x,y)
-    w_xy = np.random.normal(mu, sigma, 2)
-    mu, sigma = 0, 0.004  # mean and standard deviation for theta
-    w_theta = np.random.normal(mu, sigma, 1)
-    w = np.concatenate((w_xy, w_theta))
-    if noise:
-        return cur_state + time_step*f.flatten() + w
-    else:
-        return cur_state + time_step * f.flatten()
+# Obstacles in the environment
+obstacles = np.array([[-2,-2,0.5], [1,2,0.5]])
 
 if __name__ == '__main__':
-    # Obstacles in the environment
-    obstacles = np.array([[-2,-2,0.5], [1,2,0.5]])
     # Params
-    traj = lissajous
     ref_traj = []
     error = 0.0
     car_states = []
     times = []
+    
     # Start main loop
     main_loop = time()  # return time in sec
     # Initialize state
     cur_state = np.array([x_init, y_init, theta_init])
     cur_iter = 0 # iteration loop
+    
     # Main loop
     while (cur_iter * time_step < sim_time): 
         t1 = time()
+
         # Get reference state
         cur_time = cur_iter*time_step
-        cur_ref = traj(cur_iter)
+        cur_ref = dyn.lissajous(cur_iter, time_step)
+        
         # Save current state and reference state for visualization
         ref_traj.append(cur_ref)
         car_states.append(cur_state)
@@ -106,20 +49,24 @@ if __name__ == '__main__':
         ################################################################
         # Generate control input
         # TODO: Replace this simple controller by your own controller
-        control = simple_controller(cur_state, cur_ref)
+        control = ctrl.simple_controller(cur_state, cur_ref, v_min, v_max, w_min, w_max)
         print("[v,w]", control)
         ################################################################
 
-        # Apply control input
-        next_state = car_next_state(time_step, cur_state, control, noise=True)
-        # Update current state
+        # Apply control input, Update current state
+        next_state = dyn.car_next_state(time_step, cur_state, control, noise=True)
         cur_state = next_state
+        
         # Loop time
         t2 = time()
         print(cur_iter)
         print(t2-t1)
         times.append(t2-t1)
-        error = error + np.linalg.norm(cur_state - cur_ref)
+
+        # accumulate error
+        error_cur = cur_state - cur_ref
+        error_cur[-1] = (error_cur[-1] + np.pi) % (2 * np.pi ) - np.pi # make theta error between -pi and pi
+        error = error + np.linalg.norm(error_cur)
         cur_iter = cur_iter + 1
 
     main_loop_time = time()

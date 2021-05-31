@@ -99,9 +99,10 @@ def visualize(car_states, ref_traj, obstacles, t, time_step, save=False):
         blit=True,
         repeat=True
     )
+    # if save == True:
+    #     # sim.save('./fig/animation' + str(time()) +'.gif', writer='imagemagick', fps=15)
+    #     sim.save('./fig/animation' + str(time()) +'.gif', writer='ffmpeg', fps=15)
+    
     plt.show()
-    if save == True:
-        sim.save('./fig/animation' + str(time()) +'.gif', writer='imagemagick', fps=15)
-
     return True
 
