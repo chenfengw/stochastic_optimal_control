@@ -1,5 +1,5 @@
 # ignore for submission
-
+fig/
 
 # custom files
 *.DS_Store
@@ -8,6 +8,7 @@
 *.svg
 *.png
 report.md
+
 
 
 # Byte-compiled / optimized / DLL files

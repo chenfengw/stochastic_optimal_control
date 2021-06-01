@@ -1,7 +1,8 @@
 # %%
 import numpy as np
 from casadi import *
-import main
+import dynamics as dyn
+
 # %%
 x = SX.sym('x'); y = SX.sym('y'); z = SX.sym('z')
 f = x**2+100*z**2
@@ -9,51 +10,12 @@ nlp = {'x':vertcat(x,y,z), 'f':f, 'g':z+(1-x)**2-y}
 opts = {'ipopt.print_level':0, 'print_time':0}
 S = nlpsol('S', 'ipopt', nlp, opts)
 print(S)
-# %%
+
 r = S(x0=[2.5,3.0,0.75],\
-      lbg=0, 
-      =0)
+      lbg=0, ubg=0)
 x_opt = r['x']
 print('x_opt: ', x_opt)
-# %%
 
-
-# %%
-test1 = main.lissajous(0)
-# %%
-def error_next_state(time_step, time_idx, current_error, control, lissajous):
-    """implement car dynamics
-
-    Args:
-        time_step (float): time step between difference samples
-        time_idx (int): time index
-        current_error (np array): shape = (3,) -> [x,y,theta]
-        control (np array): shape = (2,) -> [linear v, angular v]
-        lissajous (function): function to preduct groundtruth trajectory
-
-    Returns:
-        np array: next_error, shape = (3,) -> [x,y,theta]
-    """
-    assert isinstance(time_step, float)
-    assert isinstance(time_idx, int)
-
-    # get reference trajectory
-    gt_current = np.array(lissajous(time_idx)) # current ground truth
-    gt_next = np.array(lissajous(time_idx+1))    # next ground truth
-
-    # error dynamics
-    theta = current_error[2] + gt_current[2]
-    rot_3d_z = np.array([[np.cos(theta), 0], [np.sin(theta), 0], [0, 1]])
-    f = rot_3d_z @ control # f.shape = (3,1)
-    # print(f"f is {f}, f shape is {f.shape}")
-    return current_error + time_step * f + (gt_current - gt_next)
-# %%
-time_step = 0.5
-time_idx = 1
-current_error = np.array([5,2,3])
-control = [1,2]
-lissajous = main.lissajous
-next_error = error_next_state(time_step, time_idx, current_error, control, lissajous)
 # %%
 
 def get_total_cost(e_init, T, gamma, Q, q, R, U, time_step, time_init, lissajous):
@@ -86,7 +48,7 @@ def get_total_cost(e_init, T, gamma, Q, q, R, U, time_step, time_init, lissajous
         obj_func += gamma**t_idx * (p_error.T @ Q @ p_error + \
                                     q * (1 - np.cos(theta_error))**2 + \
                                     u.T @ R @ u)
-        next_error = error_next_state(time_step, time_init+t_idx, current_error, u, lissajous)
+        next_error = dyn.error_next_state(time_step, time_init+t_idx, current_error, u, lissajous)
         current_error = next_error
 
     # add terminal cost
@@ -102,8 +64,7 @@ def get_control_sym(T):
         U.append(SX.sym(f'u_{t_idx}', 2))
     
     return U
-# %%
-U_test = get_control_sym(5)
+
 # %%
 T = 5
 U = SX.sym('U', 2, T)
@@ -114,7 +75,7 @@ q = 1
 R = np.eye(2)
 time_step = 0.5
 time_init = 0
-lissajous = main.lissajous
+lissajous = dyn.lissajous
 
 obj_func = get_total_cost(e_init, T, gamma, Q, q, R, U, time_step, time_init, lissajous)
 
@@ -122,4 +83,35 @@ obj_func = get_total_cost(e_init, T, gamma, Q, q, R, U, time_step, time_init, li
 # test NLP
 u_upper = np.ones(U.shape) # u_upper.flatten(order="F")
 u_lower = np.ones(U.shape) * np.array([0, -1]).reshape(-1,1)
+# %%
+nlp = {'x':U[:], 'f':obj_func}
+opts = {'ipopt.print_level':0, 'print_time':0}
+S = nlpsol('S', 'ipopt', nlp, opts)
+print(S)
+
+# %%
+r = S(x0 = np.random.rand(2*T), lbx=u_lower.flatten(order="F"), ubx=u_upper.flatten(order="F"))
+x_opt = r['x']
+print('x_opt: ', x_opt)
+# %% test mutiple constrains
+g = 9.8
+N = 100
+
+x = SX.sym('x',N)
+v = SX.sym('v', N)
+u = SX.sym('u', N-1)
+#theta = SX('theta', N)
+#thdot = SX('thetadot', N)
+
+dt = 0.1
+constraints = [x[0]-1, v[0]] # expressions that must be zero
+for i in range(N-1):
+    constraints += [x[i+1] - (x[i] + dt * v[i]) ]
+    constraints += [v[i+1] - (v[i] - dt * x[i+1] + u[i] * dt)]
+
+cost = sum([x[i]*x[i] for i in range(N)]) + sum([u[i]*u[i] for i in range(N-1)])
+
+nlp = {'x':vertcat(x,v,u), 'f':cost, 'g':vertcat(*constraints)}
+
+
 # %%

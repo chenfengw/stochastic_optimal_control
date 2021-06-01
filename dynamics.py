@@ -1,11 +1,12 @@
 import numpy as np
 
+
 def lissajous(k, time_step):
     """This function returns the reference point at time step k
 
     Args:
         k (int): time index
-        time_step (double): time resolution.
+        time_step (float): time resolution.
     Returns:
         list: [x_reference, y_reference, theta_ref]
     """
@@ -51,7 +52,7 @@ def car_next_state(time_step, cur_state, control, noise = True):
         return cur_state + time_step * f.flatten()
 
 
-def error_next_state(time_step, time_idx, current_error, control, lissajous):
+def error_next_state(time_step, time_idx, current_error, control):
     """implement error dynamics
 
     Args:
@@ -59,7 +60,6 @@ def error_next_state(time_step, time_idx, current_error, control, lissajous):
         time_idx (int): time index
         current_error (np array): shape = (3,) -> [x,y,theta]
         control (np array): shape = (2,) -> [linear v, angular v]
-        lissajous (function): function to preduct groundtruth trajectory
 
     Returns:
         np array: next_error, shape = (3,) -> [x,y,theta]
@@ -68,12 +68,12 @@ def error_next_state(time_step, time_idx, current_error, control, lissajous):
     assert isinstance(time_idx, int)
 
     # get reference trajectory
-    gt_current = np.array(lissajous(time_idx)) # current ground truth
-    gt_next = np.array(lissajous(time_idx+1))    # next ground truth
+    gt_current = np.array(lissajous(time_idx, time_step)) # current ground truth
+    gt_next = np.array(lissajous(time_idx+1, time_step))    # next ground truth
 
     # error dynamics
     theta = current_error[2] + gt_current[2]
     rot_3d_z = np.array([[np.cos(theta), 0], [np.sin(theta), 0], [0, 1]])
     f = rot_3d_z @ control # f.shape = (3,1)
-    # print(f"f is {f}, f shape is {f.shape}")
+
     return current_error + time_step * f + (gt_current - gt_next)
