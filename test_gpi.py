@@ -1,104 +1,73 @@
 # %%
 import itertools
 import numpy as np
+import importlib
+import dynamics
+import value_iter
+importlib.reload(dynamics)
+importlib.reload(value_iter)
+# %%
 x_range = [-3,3]
 y_range = [-3,3]
 theta_range = [0, 2*np.pi]
 v_range = [0,1]
 w_range = [-1,1]
-res = {"xy": 0.2, "theta": 5*np.pi/180, "v": 0.1, "w":0.1}
+res = {"xy": 0.5, "theta": np.pi/5, "v": 0.1, "w":0.1}
 
-# %%
-def get_state_control_space(x_range, y_range, theta_range, v_range, w_range, res):
-    all_x = np.around(np.arange(x_range[0], x_range[1]+res["xy"], res["xy"]), decimals=3)
-    all_y = np.around(np.arange(y_range[0],y_range[1]+res["xy"], res["xy"]), decimals=3)
-    all_theta = np.around(np.arange(theta_range[0], theta_range[1]+res["theta"], res["theta"]), decimals=3)
-    all_v = np.around(np.arange(v_range[0], v_range[1]+res["v"], res["v"]), decimals=3)
-    all_w = np.around(np.arange(w_range[0], w_range[1]+res["w"], res["w"]), decimals=3)
+# %% test get control space and state space 
+state_space, state_dict, ctrl_space = value_iter.get_state_control_space(x_range, y_range, theta_range, v_range, w_range, res)
 
-    # get control space
-    state_space = list(itertools.product(all_x, all_y, all_theta))
-    ctrl_space = list(itertools.product(all_v, all_w))
-
-    # get dictionary for index
-    state2idx = {state: idx for idx, state in enumerate(state_space)}
-    ctrl2idx = {ctrl: idx for idx, ctrl in enumerate(ctrl_space)}
-    return state_space, ctrl_space
-
-# %%
-state_space, ctrl_space = get_state_control_space(x_range, y_range, theta_range, v_range, w_range, res)
-
-# %%
-def calculate_stage_cost(error, U, Q, q, R):
-    """Calculate stage cost given single error and all controls
-
-    Args:
-        error (np array): single error state. shape = (3,)
-        U (np array): all controls. shape = (n_controls, 2)
-        Q (np array): weight for xy error. shape = (2,2)
-        q (float): weight for theta error
-        R (np array): weight for controls. shape = (2,2)
-
-    Returns:
-        np array: stage cost. shape = (n_controls,)
-    """
-    error1 = error[:2].T @ Q @ error[:2] + q * (1 - np.cos(error[2]))**2
-    error2 = np.sum(U * U @ R, axis=1) # [u1.T @ R u1, u2.T @ R u2 ... ]
-    return error1 + error2
-    
-# %%
+# %% test staget cost
 Q = np.eye(2)
 q = 1
 R = np.eye(2)
-# R = np.array([[0.09782802, 0.30811832],
-#        [0.15060282, 0.3939782 ]])
+# R = np.array([[0.93964841, 0.21466553],
+#              [0.04171549, 0.93294541]])
 
-error = np.array([1,2,3])
-U = np.array([[1,2],[3,4],[5,6]])
-error1, error2 = calculate_stage_cost(error, U, Q, q, R)
+X = np.array([[1,2,3], [4,5,6]])
+U = np.array([[1,2],[3,4],[5,6],[7,8]])
+state_cost = value_iter.calculate_stage_cost(X, U, Q, q, R)
 
-# %%
-from dynamics import get_gaussian_mean
+# %% test get next_state, prototype
+theta_test = np.arange(5)
+rot = np.zeros((5,3,2))
+rot[:,0,0] = np.cos(theta_test)
+rot[:,1,0] = np.sin(theta_test)
+rot[:,2,1] = 1
+
+test = rot @ U.T
+test = test.transpose(0,2,1) + np.arange(3)
+add = np.vstack([np.arange(3)+1, 
+                 np.arange(3)+2,
+                 np.arange(3)+3,
+                 np.arange(3)+4,
+                 np.arange(3)+5])
+test + add[:,None,:]
+
+# %% 
+time_step = 0.5
+time_idx = 0
+next_erros = dynamics.error_next_states(time_step, time_idx, X, U)
+# %% test gaussian mean. this implements error dynamics. 
+# essentially get next error
 time_step = 0.5
 t = 0
 cur_error = np.array([1,2,3])
 cur_control = np.array([[1,2],[3,4],[5,6],[4,5]])
-means = get_gaussian_mean(time_step, t, cur_error, cur_control, res)
-# %%
-nx, ny = (3, 3)
-x = np.linspace(0, 1, nx)
-y = np.linspace(0, 1, ny)
-xv, yv = np.meshgrid(x, y)
-# %%
-xx, yy = np.meshgrid([-1,0,1], [-1,0,1])
-# %%
-test = np.vstack((xx.ravel(), yy.ravel(), xx.ravel()* 0)).T
-# %%
-test2 = np.repeat(test[np.newaxis,:,:], 2, axis=0)
-# %%
+means = value_iter.get_gaussian_mean(time_step, t, cur_error, cur_control, res)
 
-def get_adjacent_states(means, res):
-    """Calculate states adjacent to the mean.
+# %% test adjacent states. these are states around the mean
+adj_states, diff = value_iter.get_adjacent_states(means, res)
 
-    Args:
-        means (np array): shape = (n_controls, 3)
-        res (dict): discrimination resolution
+# test to convert adj states to tuple
+adj_list = adj_states.tolist()
+adj_list_tuple = [[tuple(item) for item in sublist] for sublist in adj_list]
+adj_index = [[state_space[tuple(item)] for item in sublist] for sublist in adj_list]
 
-    Returns:
-        np array: all adjacent states shape = (n_controls, n_adjacent_state, 3)
-    """
-    xx, yy = np.meshgrid(np.array([-1,0,1]) * res["xy"], 
-                         np.array([-1,0,1]) * res["xy"])
-    grids = np.vstack((xx.ravel(), yy.ravel(), xx.ravel()* 0)).T  # grids.shape = (9,3)
-    grids_rep = np.repeat(grids[:,np.newaxis,:], means.shape[0], axis=1) # grids_rep.shape = (9,n_control,3)
-    adj_states = grids_rep + means
-    return adj_states.transpose(1,0,2)
+#%% test gaussian transition probability
+sigma = np.diag([0.04,0.04,0.004])**2
+pdf = value_iter.gaussian_transition_prob(diff, sigma)
+
 # %%
-adj_states = get_adjacent_states(means, res)
-# %%
-xx, yy = np.meshgrid(np.array([-1,0,1]) * res["xy"], 
-                         np.array([-1,0,1]) * res["xy"])
-grids = np.vstack((xx.ravel(), yy.ravel(), xx.ravel()* 0)).T  # grids.shape = (9,3)
-# %%
-grids_rep = np.repeat(grids[:,np.newaxis,:],2, axis=1)
+index = get_next_state_index(adj_states, state_space)
 # %%

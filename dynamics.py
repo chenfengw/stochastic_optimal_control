@@ -78,35 +78,35 @@ def error_next_state(time_step, time_idx, current_error, control):
 
     return current_error + time_step * f + (gt_current - gt_next)
 
-
-def get_gaussian_mean(time_step, time_idx, current_error, control, res):
-    """Get gaussian mean. Implement g(t,e,U,0)
+def error_next_states(time_step, time_idx, X, U):
+    """Calculate next error states for all current error and controls
 
     Args:
-        time_step (float): time step between difference samples
+        time_step (float): tau, time resolution
         time_idx (int): time index
-        current_error (np array): shape = (3,) -> [x,y,theta]
-        control (np array): shape = (n_control, 2)
-        res (dict): dictionary of resolution
+        X (np array): all error states, shape = (n_states, 3)
+        U (np array): all controls, shape = (n_ctrl, 2)
 
     Returns:
-        np array: next_error, shape = (n_control, 3)
+        np array: next states, shape = (n_states, n_ctrl, 3)
     """
     assert isinstance(time_step, float)
     assert isinstance(time_idx, int)
-
-    # get reference trajectory
-    gt_current = np.array(lissajous(time_idx, time_step)) # gt_current.shape = (3,)
-    gt_next = np.array(lissajous(time_idx+1, time_step))  # gt_next.shape = (3,)
-
-    # error dynamics
-    theta = current_error[2] + gt_current[2]
-    rot_3d_z = np.array([[np.cos(theta), 0], [np.sin(theta), 0], [0, 1]])
-    f = control @ rot_3d_z.T  # f.shape = (n_controls, 3)
-    means = current_error + time_step * f + (gt_current - gt_next)
-
-    # ground to nearest grid
-    means[:,0:2] = np.around(means[:,0:2]/res['xy']) * res['xy']
-    means[:,2] = np.around(means[:,2]/res['theta']) * res['theta']
     
-    return np.around(means, decimals=3)
+    # get reference trajectory
+    gt_current = np.array(lissajous(time_idx, time_step)) # current ground truth
+    gt_next = np.array(lissajous(time_idx+1, time_step))    # next ground truth
+    
+    # rotation matrix
+    theta = X[:,2] + gt_current[2]
+    rot = np.zeros((X.shape[0],3,2))
+    rot[:,0,0] = np.cos(theta)
+    rot[:,1,0] = np.sin(theta)
+    rot[:,2,1] = 1
+
+    # calculate next error state 
+    next = (rot * time_step) @ U.T # next.shape = (n_states, 3, n_ctrl)
+    next = X[:,None,:] + next.transpose(0,2,1) + (gt_current - gt_next) 
+
+    # next.shape = (n_states,n_ctrl,3)
+    return next
