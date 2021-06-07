@@ -78,8 +78,9 @@ def error_next_state(time_step, time_idx, current_error, control):
 
     return current_error + time_step * f + (gt_current - gt_next)
 
-def error_next_states(time_step, time_idx, X, U):
-    """Calculate next error states for all current error and controls
+
+def error_next_states(time_step, time_idx, X, U, res, x_range, y_range,theta_range):
+    """Calculate next error states for all current error and controls.
 
     Args:
         time_step (float): tau, time resolution
@@ -93,9 +94,9 @@ def error_next_states(time_step, time_idx, X, U):
     assert isinstance(time_step, float)
     assert isinstance(time_idx, int)
     
-    # get reference trajectory
-    gt_current = np.array(lissajous(time_idx, time_step)) # current ground truth
-    gt_next = np.array(lissajous(time_idx+1, time_step))    # next ground truth
+    # get reference trajectory, groundtruth
+    gt_current = np.array(lissajous(time_idx, time_step)) # gt_current.shape = (3,)
+    gt_next = np.array(lissajous(time_idx+1, time_step))  # gt_next.shape = (3,)
     
     # rotation matrix
     theta = X[:,2] + gt_current[2]
@@ -103,10 +104,19 @@ def error_next_states(time_step, time_idx, X, U):
     rot[:,0,0] = np.cos(theta)
     rot[:,1,0] = np.sin(theta)
     rot[:,2,1] = 1
-
+    # print(f"rot{rot}")
     # calculate next error state 
     next = (rot * time_step) @ U.T # next.shape = (n_states, 3, n_ctrl)
-    next = X[:,None,:] + next.transpose(0,2,1) + (gt_current - gt_next) 
+    next = X[:,None,:] + next.transpose(0,2,1) + (gt_current - gt_next) # shape = (n_states, n_ctrl, 3)
 
-    # next.shape = (n_states,n_ctrl,3)
-    return next
+    # print(f"raw : {next}")
+    # snap to the grid
+    next[:,:,:2] = np.around(next[:,:,:2] / res["xy"]) * res["xy"]
+    next[:,:,2] = np.around(next[:,:,2] % (2*np.pi) / res["theta"]) * res["theta"]
+ 
+    # clip to max, min
+    np.clip(next[:,:,0], x_range[0], x_range[1], out=next[:,:,0])
+    np.clip(next[:,:,1], y_range[0], y_range[1], out=next[:,:,1])
+    np.clip(next[:,:,2], theta_range[0], theta_range[1], out=next[:,:,2])
+    
+    return np.around(next, decimals=3)

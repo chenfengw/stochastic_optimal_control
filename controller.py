@@ -1,7 +1,8 @@
+import importlib
 import numpy as np
 import casadi
 import dynamics as dyn
-
+import value_iter as vi
 
 def simple_controller(cur_state, ref_state, v_min, v_max, w_min, w_max):
     """Simple proportion controller
@@ -139,3 +140,55 @@ def controller_CEC(error_cur, time_idx, param, u_lower, u_upper, g_lower, obstac
     r = S(lbx=u_lower.flatten(order="F"), ubx=u_upper.flatten(order="F"), lbg=g_lower)
     x_opt = np.array(r['x'])
     return [x_opt[:2].item(0), x_opt[:2].item(1)]
+
+
+def controller_VI(cur_error, time_idx, state_space, state_dict, ctrl_space, control_dict, time_step, res, ranges, cost_param, n_iter):
+
+    # initialize the policy and value
+    n_states = state_space.shape[0]
+    n_controls = ctrl_space.shape[0]
+    pi = np.zeros(n_states, dtype='int')
+    V = np.zeros(n_states) 
+  
+    # calculate next states for t, next_errors.shape = (n_states, n_ctrl, 3)
+    next_errors = dyn.error_next_states(time_step,
+                                        time_idx, 
+                                        state_space, 
+                                        ctrl_space, 
+                                        res,
+                                        ranges["x_range"],
+                                        ranges["y_range"],
+                                        ranges["theta_range"])
+    
+    # calculate stage_costs, stage_costs.shape = (n_states, n_ctrl)
+    stage_costs = vi.calculate_stage_cost(state_space, 
+                                          ctrl_space, 
+                                          cost_param["Q"], 
+                                          cost_param["q"], 
+                                          cost_param["R"])
+
+    # calculate index of next_errors
+    index = vi.get_next_state_index(next_errors, state_dict) # index.shape = (n_states, n_ctrl)
+    index = index.ravel()
+    
+    # value iteration  
+    for k in range(n_iter):
+        Q = stage_costs + cost_param["gamma"] * V[index].reshape(n_states,-1) # Q.shape = (n_state, n_control)
+        pi = np.argmin(Q, axis=1)    
+        V = np.min(Q,axis=1)
+
+    # convert current state to index
+    cur_state = np.copy(cur_error)
+    cur_state[:2] = np.around(cur_state[:2] / res["xy"]) * res["xy"]
+    cur_state[2] = np.around(cur_state[2] % (2*np.pi) / res["theta"]) * res["theta"]
+ 
+    # clip to max, min and get index of current state
+    cur_state[0] = np.clip(cur_state[0], ranges["x_range"][0], ranges["x_range"][1])
+    cur_state[1] = np.clip(cur_state[1], ranges["y_range"][0], ranges["y_range"][1])
+    cur_state[2] = np.clip(cur_state[2], ranges["theta_range"][0], ranges["theta_range"][1])
+    cur_state = np.around(cur_state, decimals=3)
+    state_idx = state_dict[tuple(cur_state)]
+
+    # get optimal control index
+    ctrl_idx = pi[state_idx]
+    return list(control_dict[ctrl_idx])

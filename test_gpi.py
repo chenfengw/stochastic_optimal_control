@@ -6,13 +6,13 @@ import dynamics
 import value_iter
 importlib.reload(dynamics)
 importlib.reload(value_iter)
-# %%
+# %% initialize 
 x_range = [-3,3]
 y_range = [-3,3]
 theta_range = [0, 2*np.pi]
 v_range = [0,1]
 w_range = [-1,1]
-res = {"xy": 0.5, "theta": np.pi/5, "v": 0.1, "w":0.1}
+res = {"xy": 0.6, "theta": 2*np.pi / 36, "v": 0.1, "w":0.1}
 
 # %% test get control space and state space 
 state_space, state_dict, ctrl_space = value_iter.get_state_control_space(x_range, y_range, theta_range, v_range, w_range, res)
@@ -35,7 +35,7 @@ rot[:,0,0] = np.cos(theta_test)
 rot[:,1,0] = np.sin(theta_test)
 rot[:,2,1] = 1
 
-test = rot @ U.T
+test = rot @ U.T # test.shape = (5, 3, 4)
 test = test.transpose(0,2,1) + np.arange(3)
 add = np.vstack([np.arange(3)+1, 
                  np.arange(3)+2,
@@ -44,10 +44,21 @@ add = np.vstack([np.arange(3)+1,
                  np.arange(3)+5])
 test + add[:,None,:]
 
-# %% 
+# %% test get next states function
 time_step = 0.5
 time_idx = 0
-next_erros = dynamics.error_next_states(time_step, time_idx, X, U)
+next_errors = dynamics.error_next_states(time_step, 
+                                         time_idx, 
+                                         state_space, 
+                                         ctrl_space, 
+                                         res,
+                                         x_range,
+                                         y_range,
+                                         theta_range)
+
+# %% test get next state index
+index = value_iter.get_next_state_index(next_errors, state_dict)
+
 # %% test gaussian mean. this implements error dynamics. 
 # essentially get next error
 time_step = 0.5
@@ -68,6 +79,5 @@ adj_index = [[state_space[tuple(item)] for item in sublist] for sublist in adj_l
 sigma = np.diag([0.04,0.04,0.004])**2
 pdf = value_iter.gaussian_transition_prob(diff, sigma)
 
-# %%
-index = get_next_state_index(adj_states, state_space)
+
 # %%

@@ -31,8 +31,8 @@ def get_state_control_space(x_range, y_range, theta_range, v_range, w_range, res
 
     # get dictionary for index
     state2idx = {state: idx for idx, state in enumerate(state_space)}
-    # ctrl2idx = {ctrl: idx for idx, ctrl in enumerate(ctrl_space)}
-    return np.array(state_space), state2idx, np.array(ctrl_space)
+    idx2control = {idx: ctrl for idx, ctrl in enumerate(ctrl_space)}
+    return np.array(state_space), state2idx, np.array(ctrl_space), idx2control
 
 
 def calculate_stage_cost(X, U, Q, q, R):
@@ -123,10 +123,7 @@ def get_next_state_index(adj_states, state2idx):
     Returns:
         np array: index of all next states. shape = (n_ctrl, n_adj_state)
     """
-    adj_list = adj_states.tolist()
-    # adj_list_tuple = [[tuple(item) for item in sublist] for sublist in adj_list]
-    adj_index = [[state2idx[tuple(item)] for item in sublist] for sublist in adj_list]
-
+    adj_index = [[state2idx[tuple(row)] for row in sub_array] for sub_array in adj_states]
     return np.array(adj_index)
 
 
