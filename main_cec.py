@@ -106,4 +106,4 @@ if __name__ == '__main__':
     ref_traj = np.array(ref_traj)
     car_states = np.array(car_states)
     times = np.array(times)
-    visualize(car_states, ref_traj, obstacles, times, time_step, save=False)
+    visualize(car_states, ref_traj, obstacles, times, time_step, save=True)

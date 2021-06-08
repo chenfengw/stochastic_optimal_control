@@ -142,7 +142,7 @@ def controller_CEC(error_cur, time_idx, param, u_lower, u_upper, g_lower, obstac
     return [x_opt[:2].item(0), x_opt[:2].item(1)]
 
 
-def controller_VI(cur_error, time_idx, state_space, state_dict, ctrl_space, control_dict, time_step, res, ranges, cost_param, n_iter):
+def controller_VI(cur_error, time_idx, state_space, state_dict, ctrl_space, control_dict, stage_costs, time_step, res, ranges, cost_param, n_iter):
 
     # initialize the policy and value
     n_states = state_space.shape[0]
@@ -158,13 +158,6 @@ def controller_VI(cur_error, time_idx, state_space, state_dict, ctrl_space, cont
                                         ranges["x_range"],
                                         ranges["y_range"],
                                         ranges["theta_range"])
-    
-    # calculate stage_costs, stage_costs.shape = (n_states, n_ctrl)
-    stage_costs = vi.calculate_stage_cost(state_space, 
-                                          ctrl_space, 
-                                          cost_param["Q"], 
-                                          cost_param["q"], 
-                                          cost_param["R"])
 
     # calculate index of next_errors
     index = vi.get_next_state_index(next_errors, state_dict) # index.shape = (n_states, n_ctrl)

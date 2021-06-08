@@ -9,7 +9,7 @@ import value_iter as vi
 np.random.seed(10)
 time_step = 0.5  # time between steps in seconds
 # sim_time = 120    # simulation time, simulate data for 120 second
-sim_time = 5
+sim_time = 100
 
 # Car initialization
 x_init = 1.5
@@ -21,8 +21,8 @@ obstacles = np.array([[-2, -2, 0.5], [1, 2, 0.5]])
 
 # discretization set up
 ranges = {}
-ranges["x_range"] = [-3,3]
-ranges["y_range"] = [-3,3]
+ranges["x_range"] = [-1.5,1.5]
+ranges["y_range"] = [-1.5,1.5]
 ranges["theta_range"] = [0, 2*np.pi]
 ranges["v_range"] = [0,1]
 ranges["w_range"] = [-1,1]
@@ -43,6 +43,13 @@ cost_param["gamma"] = 0.9
 cost_param["Q"] = np.eye(2) * 10
 cost_param["q"] = 0.8
 cost_param["R"] = np.eye(2)
+
+# calculate stage_costs, stage_costs.shape = (n_states, n_ctrl)
+stage_costs = vi.calculate_stage_cost(state_space, 
+                                      ctrl_space, 
+                                      cost_param["Q"], 
+                                      cost_param["q"], 
+                                      cost_param["R"])
 
 # value iteration n loop
 n_iter = 50
@@ -78,12 +85,12 @@ if __name__ == '__main__':
         # Generate control input
         # TODO: Replace this simple controller by your own controller
         # control = ctrl.simple_controller(cur_state, cur_ref, v_min, v_max, w_min, w_max)
-        control = ctrl.controller_VI(cur_error, cur_iter, state_space, state_dict, ctrl_space, control_dict, time_step, res, ranges, cost_param, n_iter)
+        control = ctrl.controller_VI(cur_error, cur_iter, state_space, state_dict, ctrl_space, control_dict, stage_costs, time_step, res, ranges, cost_param, n_iter)
         print(f"iter: {cur_iter}, [v,w]: {control}")
         ################################################################
 
         # Apply control input, Update current state
-        next_state = dyn.car_next_state(time_step, cur_state, control, noise=False)
+        next_state = dyn.car_next_state(time_step, cur_state, control, noise=True)
         cur_state = next_state
 
         # Loop time
@@ -105,4 +112,4 @@ if __name__ == '__main__':
     ref_traj = np.array(ref_traj)
     car_states = np.array(car_states)
     times = np.array(times)
-    visualize(car_states, ref_traj, obstacles, times, time_step, save=False)
+    visualize(car_states, ref_traj, obstacles, times, time_step, save=True)
