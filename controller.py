@@ -146,7 +146,6 @@ def controller_VI(cur_error, time_idx, state_space, state_dict, ctrl_space, cont
 
     # initialize the policy and value
     n_states = state_space.shape[0]
-    n_controls = ctrl_space.shape[0]
     pi = np.zeros(n_states, dtype='int')
     V = np.zeros(n_states) 
   
@@ -174,7 +173,7 @@ def controller_VI(cur_error, time_idx, state_space, state_dict, ctrl_space, cont
     # value iteration  
     for k in range(n_iter):
         Q = stage_costs + cost_param["gamma"] * V[index].reshape(n_states,-1) # Q.shape = (n_state, n_control)
-        pi = np.argmin(Q, axis=1)    
+        pi = np.argmin(Q, axis=1)
         V = np.min(Q,axis=1)
 
     # convert current state to index

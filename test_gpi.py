@@ -14,6 +14,7 @@ v_range = [0,1]
 w_range = [-1,1]
 res = {"xy": 0.6, "theta": 2*np.pi / 36, "v": 0.1, "w":0.1}
 
+test = np.arange(-3,3+0.7,0.7)
 # %% test get control space and state space 
 state_space, state_dict, ctrl_space = value_iter.get_state_control_space(x_range, y_range, theta_range, v_range, w_range, res)
 

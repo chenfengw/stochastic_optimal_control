@@ -84,7 +84,7 @@ if __name__ == '__main__':
         ################################################################
 
         # Apply control input, Update current state
-        next_state = dyn.car_next_state(time_step, cur_state, control, noise=False)
+        next_state = dyn.car_next_state(time_step, cur_state, control, noise=True)
         cur_state = next_state
 
         # Loop time

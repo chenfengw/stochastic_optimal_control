@@ -1,0 +1,10 @@
+cec no noise
+Total time:  8.367483139038086
+Average iteration time:  34.662118554115295 ms
+Final error:  44.7998349972573
+
+cec noise
+Total time:  6.687072992324829
+Average iteration time:  27.77911126613617 ms
+Final error:  71.28208814397877
+

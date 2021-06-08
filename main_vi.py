@@ -26,7 +26,7 @@ ranges["y_range"] = [-3,3]
 ranges["theta_range"] = [0, 2*np.pi]
 ranges["v_range"] = [0,1]
 ranges["w_range"] = [-1,1]
-res = {"xy": 0.5, "theta": np.pi/36, "v": 0.1, "w":0.1}
+res = {"xy": 0.5, "theta": np.pi/30, "v": 0.1, "w":0.1}
 
 # get all state and control space
 state_space, state_dict, ctrl_space, control_dict = vi.get_state_control_space(
