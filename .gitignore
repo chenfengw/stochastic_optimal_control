@@ -5,11 +5,12 @@ main_vi.py
 results.txt
 test_*
 value_iter.py
-report.md
+report*.md
 
 # custom files
 *.DS_Store
 *.pdf
+!report_github.pdf
 .vscode/
 
 # Byte-compiled / optimized / DLL files

@@ -1,26 +1,32 @@
-# ECE276B PR3 SP21 
+# Trajectory Tracking with Stochastic Optimal Control
+![](images_display/animation.gif)
 
-## Overview
-In this assignment, you will implement a controller for a car robot to track a trajectory.
+## Requirements
+To install requirements:
+```
+pip install -r requirements.txt
+```
 
-## Dependencies
-This starter code was tested with: python 3.7, matplotlib 3.4, and numpy 1.20. 
-
-## CEC
-To run CEC trajactory tracking, run
+## Trajectory Tracking
+To run trajectory tracking, use
 ```
 python main_cec.py
 ```
 
-## VI
-To run VI trajactory tracking, run
-```
-python main_vi.py
-```
+## Table of Content
+### main_cec.py
+This file contains the main function that runs trajectory tacking algorithm.
 
-## Starter code
-### 1. main.py
-This file contains examples of how to generate control inputs from a simple P controller and apply the control on a car model. This simple controller does not work well.
-Your task is to replace the P controller with your own controller using CEC and GPI as described in the project statement.
-### 2. utils.py
-This file contains code to visualize the desired trajectory, car's trajectory and obstacles.
+### controller.py
+This file contains implementation for a single P controls and also a LQR controller. The optimal controls is solved via non-linear programming.
+
+### dynamics.py
+This file contains implementation for error dynamics.
+
+## Technical Details
+See full technical details [here](images_display/report_github.pdf).
+
+## References
+1. CASADI non-linear programming
+- https://web.casadi.org/docs/#nonlinear-programminga 
+- https://www.philipzucker.com/casadi-pretty-damn-slick/
