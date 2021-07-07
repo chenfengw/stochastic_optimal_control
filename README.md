@@ -6,6 +6,18 @@ In this assignment, you will implement a controller for a car robot to track a t
 ## Dependencies
 This starter code was tested with: python 3.7, matplotlib 3.4, and numpy 1.20. 
 
+## CEC
+To run CEC trajactory tracking, run
+```
+python main_cec.py
+```
+
+## VI
+To run VI trajactory tracking, run
+```
+python main_vi.py
+```
+
 ## Starter code
 ### 1. main.py
 This file contains examples of how to generate control inputs from a simple P controller and apply the control on a car model. This simple controller does not work well.
