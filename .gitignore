@@ -1,15 +1,16 @@
 # ignore for submission
 fig/
+imgs/
+main_vi.py
+results.txt
+test_*
+value_iter.py
+report.md
 
 # custom files
 *.DS_Store
 *.pdf
 .vscode/
-*.svg
-*.png
-report.md
-
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
