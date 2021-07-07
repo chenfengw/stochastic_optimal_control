@@ -28,5 +28,5 @@ See full technical details [here](images_display/report_github.pdf).
 
 ## References
 1. CASADI non-linear programming
-- https://web.casadi.org/docs/#nonlinear-programminga 
+- https://web.casadi.org/docs/#nonlinear-programming
 - https://www.philipzucker.com/casadi-pretty-damn-slick/
