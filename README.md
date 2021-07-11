@@ -1,4 +1,6 @@
 # Trajectory Tracking with Stochastic Optimal Control
+In this project, we will designed a trajectory tracking algorithm for a ground differential-drive robot. The objective follow the trajectory as close as possible without hitting any obstacles.
+
 ![](images_display/animation.gif)
 
 ## Requirements
